@@ -1,0 +1,57 @@
+{% extends 'index.html' %}
+{% block results %}
+    {% block rating %} {% endblock %}
+    <div class="rating-block">
+        <div class="rating-block-outter">
+            <div class="value">3</div>
+        </div>
+
+        <div class="rating-block-inner">
+            <input type="range" min="1" max="5" value="3" class="slider" id="slider">
+        </div>
+
+    <a href="#" id="rate-btn">Rate</a>
+    </div>
+
+    <h1>{{ title }}</h1>
+    <div class="text-view">
+        <div class="en-version">
+            <div class="en-text">
+                {% for i in range(0, en_len) %}
+                    {% if text_en[i].startswith('====') %}
+                        <h4>{{ text_en[i][5:-5] }}</h4>
+                    {% elif text_en[i].startswith('===') %}
+                        <h3>{{ text_en[i][4:-4] }}</h3>
+                    {% elif text_en[i].startswith('==') %}
+
+
+                        <h2>{{ text_en[i][3:-3] }}</h2>
+                    {% else %}
+                         <span class="sentence">{{ text_en[i] }}</span>
+                    {% endif %}
+
+
+                {% endfor %}
+            </div>
+        </div>
+        <div class="simple-version">
+            <div class="simple-text">
+                {%for i in range(0, simple_len)%}
+                    {% if i == sentence_index %}
+                        <strong>text_simple[i]</strong>
+                    {% endif %}
+                    {% if text_simple[i].startswith('====') %}
+                        <h4>{{ text_simple[i][5:-5] }}</h4>
+                    {% elif text_simple[i].startswith('===') %}
+                        <h3>{{ text_simple[i][4:-4] }}</h3>
+                    {% elif text_simple[i].startswith('==') %}
+                        <h2>{{ text_simple[i][3:-3] }}</h2>
+                    {% else %}
+                         <span class="sentence" id="sentence-{{i}}">{{ text_simple[i] }}</span>
+                    {% endif %}
+                {%endfor%}
+            </div>
+        </div>
+
+    </div>
+{% endblock %}
