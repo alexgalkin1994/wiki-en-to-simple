@@ -1,5 +1,8 @@
 {% extends 'index.html' %}
+
 {% block results %}
+
+
     {% block rating %} {% endblock %}
     <div class="rating-block">
         <div class="rating-block-outter">
@@ -12,6 +15,15 @@
 
     <a href="#" id="rate-btn">Rate</a>
     </div>
+
+    <label class="alg-block">
+            <div>Algorithm</div>
+                <select class="alg-dd" id="curr-alg">
+                {% for alg in algorithms %}
+                    <option value="{{ alg }}">{{ alg }}</option>
+                 {% endfor %}
+                </select>
+    </label>
 
     <h1>{{ title }}</h1>
     <div class="text-view">

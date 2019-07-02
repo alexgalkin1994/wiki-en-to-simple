@@ -2,18 +2,21 @@ let rate_btn = document.querySelector("#rate-btn");
 let slider = document.querySelector('input[type="range"]');
 let en_sentence = '';
 let simple_sentence = '';
-let jci = 0;
+let jci = null;
+let cosinevecindex = null;
+let ltfidf = null;
+let algorithm = '';
 
 // User Rating und Daten zurueck an flask schicken
 rate_btn.addEventListener("click", function(e) {
 	if(en_sentence !== null && en_sentence !== '') {
-		console.log(slider.value);
-		console.log(jci);
-		console.log(en_sentence);
-		console.log(simple_sentence);
 		let rating = slider.value;
 
-		let pack = {en_sentence: en_sentence, simple_sentence: simple_sentence, jci: jci, rating: rating}
+		let alg_dd = document.querySelector('#curr-alg');
+		algorithm = alg_dd.value;
+		console.log("ALG: " + algorithm);
+
+		let pack = {alg: algorithm, en_sentence: en_sentence, simple_sentence: simple_sentence, rating: rating, jci: jci, cosinevecindex: cosinevecindex, ltfidf:ltfidf}
 
 		fetch(`${window.origin}/result/prepwritedb`, {
 			method: 'POST',
@@ -29,20 +32,72 @@ rate_btn.addEventListener("click", function(e) {
 	}
 });
 
+
 // Satz in simple English markieren
-function markSentence(jcindex, pos) {
-	let selected = document.querySelector('.simple-selection');
-		if(selected){
-			selected.className = ''
-		}
-	jci = jcindex;
-	let element = document.querySelector('#sentence-'+pos);
-	simple_sentence = element.textContent;
-	if(jci > 0.2){
-		element.classList.add('selected-10', 'simple-selection')
-	} else {
-		element.classList.add('selected-9', 'simple-selection')
+function markSentence(score, pos, sentence_quan, alg) {
+
+	let selected = document.querySelectorAll(".simple-selection");
+
+	for (var i = 0; i < selected.length; i++) {
+		console.log(selected)
+   		selected[i].classList.remove('simple-selection', 'selected-10', 'selected-9');
 	}
+	let element2;
+	let element = document.querySelector('#sentence-'+pos);
+
+	if(sentence_quan == 2){
+		element2 = document.querySelector('#sentence-'+(pos+1));
+	}
+	if(alg.toString() == 'jci'){
+		jci = score;
+
+		if(jci >= 0.2){
+			element.classList.add('selected-10', 'simple-selection');
+		if (typeof(element2) != 'undefined' && element2 != null){
+			element2.classList.add('selected-10', 'simple-selection')
+		}
+		} else {
+		element.classList.add('selected-9', 'simple-selection')
+		if (typeof(element2) != 'undefined' && element2 != null){
+			element2.classList.add('selected-9', 'simple-selection')
+		}
+		}
+	} else if (alg.toString() == 'cosinevector'){
+		cosinevecindex = score;
+
+		if(cosinevecindex >= 0.8){
+			element.classList.add('selected-10', 'simple-selection');
+			if (typeof(element2) != 'undefined' && element2 != null){
+				element2.classList.add('selected-10', 'simple-selection')
+			}
+		} else {
+		element.classList.add('selected-9', 'simple-selection');
+			if (typeof(element2) != 'undefined' && element2 != null){
+				element2.classList.add('selected-9', 'simple-selection')
+			}
+		}
+	} else if (alg.toString() == 'ltfidf'){
+		ltfidf = score;
+
+		if(ltfidf >= 0.2){
+			element.classList.add('selected-10', 'simple-selection');
+			if (typeof(element2) != 'undefined' && element2 != null){
+				element2.classList.add('selected-10', 'simple-selection')
+			}
+		} else {
+		element.classList.add('selected-9', 'simple-selection');
+			if (typeof(element2) != 'undefined' && element2 != null){
+				element2.classList.add('selected-9', 'simple-selection')
+			}
+		}
+	}
+
+
+
+	simple_sentence = element.textContent;
+
+
+
 
 	element.scrollIntoView({ block: 'end',  behavior: 'smooth' });
 }
@@ -56,8 +111,11 @@ document.querySelector(".en-text").addEventListener("click", function(e) {
 			selected.classList.remove('selected');
 		}
 		e.target.classList.add("selected");
+		let alg_dd = document.querySelector('#curr-alg');
+		console.log(alg_dd.value);
 		let sentence = {
-			selected_sentence: e.target.textContent
+			selected_sentence: e.target.textContent,
+			selected_alg: alg_dd.value
 		}
 		en_sentence = e.target.textContent;
 
@@ -71,7 +129,7 @@ document.querySelector(".en-text").addEventListener("click", function(e) {
 			}),
 		})
 			.then(res => res.json())
-			.then(res => markSentence(res[0], res[1]))
+			.then(res => markSentence(res[0], res[1], res[2], res[3]))
 
 
 	}

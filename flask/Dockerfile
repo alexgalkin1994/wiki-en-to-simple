@@ -11,7 +11,7 @@ ADD . /app
 RUN pip install -r requirements.txt
 
 # Download the language model
-RUN python -m spacy download en_core_web_sm
+RUN python -m spacy download en_core_web_md
 
 # run the command to start uWSGI
 CMD ["uwsgi", "app.ini"]

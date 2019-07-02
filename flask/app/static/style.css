@@ -171,8 +171,22 @@ h3{
     padding: 20px;
   font-weight: bold;
   font-size: 24px;
-
 }
+
+
+.alg-block{
+    position: absolute;
+    top: 30px;
+    left: 45px;
+}
+
+.alg-dd{
+    position: absolute;
+    top: 25px;
+    left: -15px;
+}
+
+
 input[type="range"] {
   display: block;
   -webkit-appearance: none;
