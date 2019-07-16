@@ -7,20 +7,17 @@ from flask import render_template, request, jsonify
 import wikipedia
 import pickle
 import spacy
-
-
+from spacy.pipeline import merge_entities
+from collections import Counter
 
 
 
 # Define document
 
 
-
-
-
-
 # Sprachmodel laden
 nlp = spacy.load('en_core_web_md')
+nlp.add_pipe(merge_entities)
 
 from spacy.lang.en.stop_words import STOP_WORDS
 
@@ -55,14 +52,80 @@ def jci2(en_sentence, simple_text):
             sentence_index = i
     return highest_ratio, sentence_index
 
+
+def jci_flex(sentence, simple_text, ands):
+    highest_ratio = 0
+    sentence_index = 0
+    sentence_quan = 1
+    ands = ands + 1
+    for i in range(len(simple_text)-1):
+        if simple_text[i]:
+            if (simple_text[i][0] == '='):
+                continue
+        simple_sentences = []
+        local_ratio = -1
+        for j in range(ands):
+
+            if i + j < len(simple_text):
+                simple_sentences = simple_sentences + simple_text[i+j]
+
+                ratio = len(set(sentence).intersection(simple_sentences)) / float(len(set(sentence).union(simple_sentences)))
+                ratio = round(ratio,4)
+                local_ratio = round(local_ratio,4)
+
+                if local_ratio < ratio:
+                    local_ratio = ratio
+                    sentence_quan_local = j+1
+        if local_ratio >= highest_ratio:
+            highest_ratio = local_ratio
+            sentence_index = i
+            sentence_quan = sentence_quan_local
+
+    return highest_ratio, sentence_index, sentence_quan
+
+
 # Stopwords entfernen aus Satz
 def remove_stopwords_sentence(sentence):
     sentence_no_stopwords = []
     my_sentence = nlp(sentence)
+    commata_and_ands = 0
+
     for word in my_sentence:
+        if word.text == ',' or word.text == 'and':
+            commata_and_ands += 1
         if word.is_stop == False and word.is_punct == False:
-            sentence_no_stopwords.append(str(word.lemma_).lower())
-    return sentence_no_stopwords
+            if word.ent_type_== '':
+                sentence_no_stopwords.append(str(word.lemma_).lower())
+            else:
+                sentence_no_stopwords.append(str(word.text).lower())
+
+
+
+    sentence_ent = []
+    local_ent = []
+    is_ent = False
+    # for word in my_sentence:
+    #     print(word.text, word.ent_iob)
+    #     if word.ent_iob == 2:
+    #         if is_ent:
+    #             if len(local_ent) > 1:
+    #                 ent = ' '.join(local_ent)
+    #             else:
+    #                 ent = local_ent[0]
+    #             local_ent = []
+    #             sentence_no_stopwords.append(str(ent).lower())
+    #             is_ent = False
+    #         if str(word) == ',' or str(word) == 'and':
+    #             commata_and_ands += 1
+    #         if word.is_stop == False and word.is_punct == False:
+    #             sentence_no_stopwords.append(str(word.lemma_).lower())
+    #     if word.ent_iob == 3:
+    #         local_ent.append(word.text)
+    #         is_ent = True
+    #     if word.ent_iob == 1:
+    #         local_ent.append(word.text)
+
+    return sentence_no_stopwords, commata_and_ands
 
 
 # Stopwords entfernen aus Text
@@ -71,9 +134,17 @@ def remove_stopwords(text):
     for sentence in range (len(text)):
         my_sentence = nlp(text[sentence])
         new_sentence = []
+        if my_sentence.text[0] == '=':
+            text_no_stopwords.append([])
+            continue
         for word in my_sentence:
+            if word.text == ' ':
+                continue
             if word.is_stop == False and word.is_punct == False:
-                new_sentence.append(str(word.lemma_).lower())
+                if word.ent_type_ == '':
+                    new_sentence.append(str(word.lemma_).lower())
+                else:
+                    new_sentence.append(str(word.text).lower())
         text_no_stopwords.append(new_sentence)
 
     return text_no_stopwords
@@ -155,7 +226,7 @@ def result():
         pickle.dump(simple_no_stopwords, pickle_content_simple_processed)
         pickle_content_simple_processed.close()
 
-        return render_template('results.html', algorithms = algorithms, text_simple=content_simple_processed, simple_len=len(content_simple_processed), en_len=len(content_en_processed), text_en=content_en_processed, title=selected_query)
+        return render_template('results.html', loading = True, algorithms = algorithms, text_simple=content_simple_processed, simple_len=len(content_simple_processed), en_len=len(content_en_processed), text_en=content_en_processed, title=selected_query)
 
     except wikipedia.exceptions.DisambiguationError as e:
         wikipedia.set_lang("simple")
@@ -164,7 +235,7 @@ def result():
         wikipedia.set_lang("en")
         content_en = wikipedia.WikipediaPage(title=e.options[0]).content
 
-        return render_template('index.html', text_simple=content_simple, text_en=content_en, title=e.options[0])
+        return render_template('index.html', loading = True, text_simple=content_simple, text_en=content_en, title=e.options[0])
 
 
 def word_count_f(sent):
@@ -175,123 +246,126 @@ def word_count_f(sent):
         else:
             freq[word] = 1
     return freq
+def tfidf_flex(sentence, text, ands):
+    sentence_count = len(text)
+    sentence_length = len(sentence)
+    ands = ands + 1
+    tf_scores = {}
+
+    #tf
+    occurrences = Counter(sentence)
+    for word in sentence:
+        tf_scores[word] = occurrences[word]/sentence_length
 
 
-#TF-IDF matching methode
-def tfidf(sentence, text):
-    wordfreqsent = {}
-    sentence_count = 0
-    word_count = 0
-    for i in range(len(text)):
-        sentence_count += 1
-        double_sentence = []
-        for j in range(len(text[i])):
-            if text[i][j][0] == '=':
-                sentence_count -= 1
-                break
-            if text[i][j] not in wordfreqsent:
-                wordfreqsent[text[i][j]] = 0
-            if(text[i][j] not in double_sentence):
-                wordfreqsent[text[i][j]] += 1
-            double_sentence.append(text[i][j])
-            word_count += 1
-        sentence_count += 1
+    #df
+    df = {}
+    for key in tf_scores:
+        count = 0
+        for sent in text:
+            if key in sent:
+                count += 1
+        df[key] = count
+
+    #tfidf
+    tfidf_scores = {}
+    for word in sentence:
+        tfidf_scores[word] = tf_scores[word]*log(sentence_count/(df[word]+1))
 
 
-    score = 0
-    highest_score = 0;
-    sent_index_highest_score = 0
+    #Matching
+    highest_score = 0
+    digit_multiplicator = 1.8
+    sent_quan = 0
+    for sentence_index, sent in enumerate(text):
+        sentence_score = 0
+        temp_sentences = []
+        local_highest_score = 0
+        local_sent_quan = 1
+        for i in range(ands):
+            if sentence_index + i < len(text):
+                if sent:
+                    if sent[0] == '=':
+                        break
 
-    for i in range(len(text)):
-        wc = word_count_f(text[i])
-        if text[i][0] == '=':
-            continue
-        sent_len = len(text[i])
-        for word in sentence:
-            sent_score = 0
-            if word in wc.keys():
-                c = wc[word]
-            else:
-                c = 0
-            if word in wordfreqsent:
-                score = (c/sent_len)*log(sentence_count/wordfreqsent[word])
-                #print(score, c, sent_len, sentence_count, wordfreqsent[word])
-            else:
-                score = 0
+                temp_sentences += text[sentence_index + i]
+                for word in sentence:
+                    if word in temp_sentences:
+                        if word.isdigit():
+                            sentence_score += (tfidf_scores[word] * digit_multiplicator)
+                        else:
+                            sentence_score += tfidf_scores[word]
+                #???
+                sentence_score = sentence_score / (log(len(temp_sentences)+1) + 1)
+                print(highest_score, sentence_score, sent_quan)
+                if local_highest_score <= sentence_score:
+                    local_highest_score = sentence_score
+                    local_sent_quan = i + 1
 
-            sent_score += score
+        if local_highest_score >= highest_score:
+            highest_score = local_highest_score
+            best_sentence_index = sentence_index
+            sent_quan = local_sent_quan
 
-        if sent_score > highest_score:
-            highest_score = sent_score;
-            sent_index_highest_score = i
 
-    return highest_score, sent_index_highest_score
+
+    return highest_score, best_sentence_index, sent_quan
+
+
 
 def remove_dublicate_list(mylist):
     mylist = list(dict.fromkeys(mylist))
     return mylist
 
-def sim(sentence, text):
-    sentence = remove_dublicate_list(sentence)
+
+def sim_flex(sentence, text, ands):
+
+    #sentence = remove_dublicate_list(sentence)
     sentence = " ".join(sentence)
     sentence = nlp(sentence)
 
-    highest_score = 0
+    ands += 1
     c = 0
-    for sent in text:
-        sent = remove_dublicate_list(sent)
-        sent = " ".join(sent)
-        if sent:
-            if sent[0] == '=':
-                c += 1
+    highest_score = 0
+
+    for index in range(len(text)):
+        sentences = ''
+
+        # Ein Satz, zwei Saetze, etc.
+        sentences_different_quan = []
+
+        for i in range(0,ands):
+            if index+i < len(text):
+                sent = remove_dublicate_list(text[index+i])
+                if sent:
+                    if sent[0] == '=':
+                        break
+                sent = " ".join(sent)
+                sentences = " ".join([sentences,sent])
+                sentences_different_quan.append(sentences)
+
+        local_highest_score = 0
+        for j in range(0,len(sentences_different_quan)):
+
+            if sentences_different_quan[j][0] == '=' or sentences_different_quan[j] == ' ' or sentences_different_quan[j] == '' or sentences_different_quan == ' ':
+                #c += 1
                 continue
-        sent = nlp(sent)
-        score = sentence.similarity(sent)
-        if score > highest_score:
-            highest_score = score
+            sentences_comp = nlp(sentences_different_quan[j])
+            score = sentence.similarity(sentences_comp)
+
+
+            if score > local_highest_score:
+                local_highest_score = score
+                local_quan = j+1
+
+        if local_highest_score >= highest_score:
+            highest_score = local_highest_score
+
+            quan = local_quan
             best_sent = sent
             pos = c
         c += 1
-
-    if highest_score < 0.9:
-        match = 0
-    elif highest_score >= 0.9:
-        match = 1
-
-    return pos, highest_score
-
-def sim2(sentence, text):
-    sentence = remove_dublicate_list(sentence)
-    sentence = " ".join(sentence)
-    sentence = nlp(sentence)
-
-    c = 0
-    highest_score = 0
-    for index, sent in enumerate(text):
-        sent = remove_dublicate_list(sent)
-        sent2 = remove_dublicate_list(text[index+1])
-        sent = " ".join(sent)
-        sent2 = " ".join(sent2)
-        two_sent = sent + " " + sent2
-        if sent[0][0] == '=':
-            c += 1
-            continue
-        two_sent = nlp(two_sent)
-
-        score = sentence.similarity(two_sent)
-        if score > highest_score:
-            highest_score = score
-            best_sent = sent
-            pos = c
-        c += 1
-
-        if highest_score < 0.9:
-            match = 0
-        elif highest_score >= 0.9:
-            match = 1
-
-        return pos, highest_score
-
+    return pos, highest_score, quan
 
 
 # Ausgewaehlten Satz bekommen und verarbeiten
@@ -300,56 +374,22 @@ def compare_fetch():
     req = request.get_json()
     sentence = req.get('selected_sentence')
     selected_alg = req.get('selected_alg')
-    sentence_no_stopwords = remove_stopwords_sentence(sentence)
+    sentence_no_stopwords, commata_and_ands = remove_stopwords_sentence(sentence)
     pickle_in = open('content_simple_processed.pickle', 'rb')
     simple_no_stopwords = pickle.load(pickle_in)
     print(selected_alg)
     if(selected_alg == 'Cosine Vector'):
-        pos, score = sim(sentence_no_stopwords,simple_no_stopwords)
-        pos2, score2 = sim2(sentence_no_stopwords, simple_no_stopwords)
+        pos, score, quan = sim_flex(sentence_no_stopwords, simple_no_stopwords, commata_and_ands)
+        return jsonify(score, pos, quan, 'cosinevector')
 
-        if score > score2:
-            return jsonify(score, pos, 1, 'cosinevector')
-        else:
-            return jsonify(score2, pos2, 2, 'cosinevector')
     elif(selected_alg == 'Local TF-IDF'):
-        tfidf_index, sentence_index = tfidf(sentence_no_stopwords, simple_no_stopwords)
-        return jsonify(tfidf_index, sentence_index, 1, 'ltfidf')
+        tfidf_index, sentence_index, sent_quan = tfidf_flex(sentence_no_stopwords, simple_no_stopwords,commata_and_ands)
+        return jsonify(tfidf_index, sentence_index, sent_quan, 'ltfidf')
     else:
         # JCI berechnen
-        jci_index, sentence_index = jci(sentence_no_stopwords, simple_no_stopwords)
-        jci_index2, sentence_index2 = jci2(sentence_no_stopwords, simple_no_stopwords)
+        jci_index, sentence_index, sentence_quan = jci_flex(sentence_no_stopwords, simple_no_stopwords, commata_and_ands)
+        return jsonify(jci_index, sentence_index, sentence_quan, 'jci')
 
-        if jci_index > jci_index2:
-            return jsonify(jci_index, sentence_index, 1, 'jci')
-        else:
-            return jsonify(jci_index2, sentence_index2, 2, 'jci')
-
-def run_all_algs(sentence_no_stopwords, simple_no_stopwords):
-
-    # Cosine Vector
-    match, pos, score = sim(sentence_no_stopwords, simple_no_stopwords)
-    match2, pos2, score2 = sim2(sentence_no_stopwords, simple_no_stopwords)
-
-    if score > score2:
-        cosine_vector_score = score
-    else:
-        cosine_vector_score = score2
-
-    # Local TF-IDF
-    tfidf_index, sentence_index = tfidf(sentence_no_stopwords, simple_no_stopwords)
-    local_tfidf_score = tfidf_index
-
-    # JCI berechnen
-    jci_index, sentence_index = jci(sentence_no_stopwords, simple_no_stopwords)
-    jci_index2, sentence_index2 = jci2(sentence_no_stopwords, simple_no_stopwords)
-
-    if jci_index > jci_index2:
-        jci_score = jci_index
-    else:
-        jci_score = jci_index
-
-    return jci_score, cosine_vector_score, local_tfidf_score
 
 
 # Rating und Daten fuer DB vorbereiten

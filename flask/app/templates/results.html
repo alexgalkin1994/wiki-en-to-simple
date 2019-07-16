@@ -2,8 +2,10 @@
 
 {% block results %}
 
-
+    <script src="{{url_for('static', filename='pace.min.js')}}"></script>
     {% block rating %} {% endblock %}
+
+    <img id="loader" src="{{url_for('static', filename='loading.gif')}}" />
     <div class="rating-block">
         <div class="rating-block-outter">
             <div class="value">3</div>

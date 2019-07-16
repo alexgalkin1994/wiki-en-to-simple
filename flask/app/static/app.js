@@ -35,59 +35,54 @@ rate_btn.addEventListener("click", function(e) {
 
 // Satz in simple English markieren
 function markSentence(score, pos, sentence_quan, alg) {
+	let loader = document.getElementById("loader");
+  	loader.style.display = "none";
 
+	console.log("in")
 	let selected = document.querySelectorAll(".simple-selection");
 
 	for (var i = 0; i < selected.length; i++) {
-		console.log(selected)
    		selected[i].classList.remove('simple-selection', 'selected-10', 'selected-9');
 	}
-	let element2;
+
 	let element = document.querySelector('#sentence-'+pos);
+	console.log(element)
+	console.log(sentence_quan)
+	for (var j = 0; j < sentence_quan; j++){
+		console.log("markiert")
+		element = document.querySelector('#sentence-'+(pos+j));
 
-	if(sentence_quan == 2){
-		element2 = document.querySelector('#sentence-'+(pos+1));
-	}
-	if(alg.toString() == 'jci'){
-		jci = score;
+		if(alg.toString() == 'cosinevector'){
+			cosinevecindex = score;
 
-		if(jci >= 0.2){
+			if(cosinevecindex >= 0.2) {
 			element.classList.add('selected-10', 'simple-selection');
-		if (typeof(element2) != 'undefined' && element2 != null){
-			element2.classList.add('selected-10', 'simple-selection')
-		}
-		} else {
-		element.classList.add('selected-9', 'simple-selection')
-		if (typeof(element2) != 'undefined' && element2 != null){
-			element2.classList.add('selected-9', 'simple-selection')
-		}
-		}
-	} else if (alg.toString() == 'cosinevector'){
-		cosinevecindex = score;
-
-		if(cosinevecindex >= 0.8){
-			element.classList.add('selected-10', 'simple-selection');
-			if (typeof(element2) != 'undefined' && element2 != null){
-				element2.classList.add('selected-10', 'simple-selection')
-			}
-		} else {
-		element.classList.add('selected-9', 'simple-selection');
-			if (typeof(element2) != 'undefined' && element2 != null){
-				element2.classList.add('selected-9', 'simple-selection')
+			} else {
+				if (typeof(element) != 'undefined' && element != null){
+					element.classList.add('selected-9', 'simple-selection')
+				}
 			}
 		}
-	} else if (alg.toString() == 'ltfidf'){
-		ltfidf = score;
 
-		if(ltfidf >= 0.2){
+		if(alg.toString() == 'jci'){
+			jci = score;
+			if(jci >= 0.2) {
 			element.classList.add('selected-10', 'simple-selection');
-			if (typeof(element2) != 'undefined' && element2 != null){
-				element2.classList.add('selected-10', 'simple-selection')
+			} else {
+				if (typeof(element) != 'undefined' && element != null){
+					element.classList.add('selected-9', 'simple-selection')
+				}
 			}
-		} else {
-		element.classList.add('selected-9', 'simple-selection');
-			if (typeof(element2) != 'undefined' && element2 != null){
-				element2.classList.add('selected-9', 'simple-selection')
+		}
+
+		if(alg.toString() == 'ltfidf'){
+			ltfidf = score;
+			if(ltfidf >= 0.2) {
+			element.classList.add('selected-10', 'simple-selection');
+			} else {
+				if (typeof(element) != 'undefined' && element != null){
+					element.classList.add('selected-9', 'simple-selection')
+				}
 			}
 		}
 	}
@@ -118,6 +113,8 @@ document.querySelector(".en-text").addEventListener("click", function(e) {
 			selected_alg: alg_dd.value
 		}
 		en_sentence = e.target.textContent;
+		let loader = document.getElementById("loader");
+  		loader.style.display = "block";
 
 		fetch(`${window.origin}/result/compare`, {
 			method: 'POST',
