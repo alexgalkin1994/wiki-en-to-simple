@@ -49,8 +49,14 @@ function markSentence(score, pos, sentence_quan, alg) {
 	console.log(element)
 	console.log(sentence_quan)
 	for (var j = 0; j < sentence_quan; j++){
+
 		console.log("markiert")
 		element = document.querySelector('#sentence-'+(pos+j));
+
+		if (element == null){
+			console.log("isnull")
+			continue;
+		}
 
 		if(alg.toString() == 'cosinevector'){
 			cosinevecindex = score;

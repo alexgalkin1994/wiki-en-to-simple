@@ -10,6 +10,10 @@ import spacy
 from spacy.pipeline import merge_entities
 from collections import Counter
 
+import numpy as np
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
+import operator
 
 
 # Define document
@@ -246,70 +250,115 @@ def word_count_f(sent):
         else:
             freq[word] = 1
     return freq
+
+
 def tfidf_flex(sentence, text, ands):
-    sentence_count = len(text)
-    sentence_length = len(sentence)
-    ands = ands + 1
-    tf_scores = {}
+    for i in range(len(text)):
+        if text[i] == []:
+            continue
+        text[i] = " ".join(text[i])
 
-    #tf
-    occurrences = Counter(sentence)
-    for word in sentence:
-        tf_scores[word] = occurrences[word]/sentence_length
+    sentence = " ".join(sentence)
+    text_flex = []
+    for j in range(len(text)):
+        print("hier drin")
+        for a in range(ands+1):
+            print("nein hier")
+            if j + a < len(text):
+                print("nein nein hier")
+                text_flex.append([text[j+a],a + 1, j])
+
+    text_flex_f = []
+    text_flex_f.insert(0, sentence)
+
+    print(text_flex)
+
+    for b in range(len(text_flex)):
+        if(text_flex[b][0]) == []:
+            text_flex_f.append('')
+            continue
+        text_flex_f.append(text_flex[b][0])
+    tfidf_vectorizer = TfidfVectorizer()
+    print(text_flex_f)
+    tfidf_matrix = tfidf_vectorizer.fit_transform(text_flex_f)
+    tfidf = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix)
+    tfidf = tfidf[0][1:]
+    tfidf = tfidf.tolist()
+    index, value = max(enumerate(tfidf), key=operator.itemgetter(1))
+    sentence_quan = text_flex[index][1]
+    sentence_index = text_flex[index][2]
 
 
-    #df
-    df = {}
-    for key in tf_scores:
-        count = 0
-        for sent in text:
-            if key in sent:
-                count += 1
-        df[key] = count
-
-    #tfidf
-    tfidf_scores = {}
-    for word in sentence:
-        tfidf_scores[word] = tf_scores[word]*log(sentence_count/(df[word]+1))
-
-
-    #Matching
-    highest_score = 0
-    digit_multiplicator = 1.8
-    sent_quan = 0
-    for sentence_index, sent in enumerate(text):
-        sentence_score = 0
-        temp_sentences = []
-        local_highest_score = 0
-        local_sent_quan = 1
-        for i in range(ands):
-            if sentence_index + i < len(text):
-                if sent:
-                    if sent[0] == '=':
-                        break
-
-                temp_sentences += text[sentence_index + i]
-                for word in sentence:
-                    if word in temp_sentences:
-                        if word.isdigit():
-                            sentence_score += (tfidf_scores[word] * digit_multiplicator)
-                        else:
-                            sentence_score += tfidf_scores[word]
-                #???
-                sentence_score = sentence_score / (log(len(temp_sentences)+1) + 1)
-                print(highest_score, sentence_score, sent_quan)
-                if local_highest_score <= sentence_score:
-                    local_highest_score = sentence_score
-                    local_sent_quan = i + 1
-
-        if local_highest_score >= highest_score:
-            highest_score = local_highest_score
-            best_sentence_index = sentence_index
-            sent_quan = local_sent_quan
+    #print(cosine_similarity(tfidf_sentence_vector,tfidf_matrix))
 
 
 
-    return highest_score, best_sentence_index, sent_quan
+    return value, sentence_index, sentence_quan
+
+# def tfidf_flex(sentence, text, ands):
+#     sentence_count = len(text)
+#     sentence_length = len(sentence)
+#     ands = ands + 1
+#     tf_scores = {}
+#
+#     #tf
+#     occurrences = Counter(sentence)
+#     for word in sentence:
+#         tf_scores[word] = occurrences[word]/sentence_length
+#
+#
+#     #df
+#     df = {}
+#     for key in tf_scores:
+#         count = 0
+#         for sent in text:
+#             if key in sent:
+#                 count += 1
+#         df[key] = count
+#
+#     #tfidf
+#     tfidf_scores = {}
+#     for word in sentence:
+#         tfidf_scores[word] = tf_scores[word]*log(sentence_count/(df[word]+1))
+#
+#
+#     #Matching
+#     highest_score = 0
+#     digit_multiplicator = 1.8
+#     sent_quan = 0
+#     for sentence_index, sent in enumerate(text):
+#         sentence_score = 0
+#         temp_sentences = []
+#         local_highest_score = 0
+#         local_sent_quan = 1
+#         for i in range(ands):
+#             if sentence_index + i < len(text):
+#                 if sent:
+#                     if sent[0] == '=':
+#                         break
+#
+#                 temp_sentences += text[sentence_index + i]
+#                 for word in sentence:
+#                     if word in temp_sentences:
+#                         if word.isdigit():
+#                             sentence_score += (tfidf_scores[word] * digit_multiplicator)
+#                         else:
+#                             sentence_score += tfidf_scores[word]
+#                 #???
+#                 sentence_score = sentence_score / (log(len(temp_sentences)+1) + 1)
+#                 print(highest_score, sentence_score, sent_quan)
+#                 if local_highest_score <= sentence_score:
+#                     local_highest_score = sentence_score
+#                     local_sent_quan = i + 1
+#
+#         if local_highest_score >= highest_score:
+#             highest_score = local_highest_score
+#             best_sentence_index = sentence_index
+#             sent_quan = local_sent_quan
+#
+#
+#
+#     return highest_score, best_sentence_index, sent_quan
 
 
 
