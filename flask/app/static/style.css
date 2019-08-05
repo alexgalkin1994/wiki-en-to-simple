@@ -26,6 +26,15 @@ main{
     width: 100%;
 }
 
+
+
+#analysisbtn{
+    position:absolute;
+    top: 10px;
+    right: 10px;
+    padding: 10px;
+}
+
 .search-bar{
     margin-top: 30px;
     width: 300px;

@@ -12,7 +12,7 @@
         </div>
 
         <div class="rating-block-inner">
-            <input type="range" min="1" max="5" value="3" class="slider" id="slider">
+            <input type="range" min="" max="3" value="2" class="slider" id="slider">
         </div>
 
     <a href="#" id="rate-btn">Rate</a>
@@ -41,7 +41,7 @@
 
                         <h2>{{ text_en[i][3:-3] }}</h2>
                     {% else %}
-                         <span class="sentence">{{ text_en[i] }}</span>
+                         <span class="en_sentence-{{i}}">{{ text_en[i] }}</span>
                     {% endif %}
 
 

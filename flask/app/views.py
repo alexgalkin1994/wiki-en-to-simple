@@ -72,8 +72,10 @@ def jci_flex(sentence, simple_text, ands):
 
             if i + j < len(simple_text):
                 simple_sentences = simple_sentences + simple_text[i+j]
-
-                ratio = len(set(sentence).intersection(simple_sentences)) / float(len(set(sentence).union(simple_sentences)))
+                if len(set(sentence).union(simple_sentences)) > 0:
+                    ratio = len(set(sentence).intersection(simple_sentences)) / float(len(set(sentence).union(simple_sentences)))
+                else:
+                    ratio = 0
                 ratio = round(ratio,4)
                 local_ratio = round(local_ratio,4)
 
@@ -295,70 +297,6 @@ def tfidf_flex(sentence, text, ands):
 
     return value, sentence_index, sentence_quan
 
-# def tfidf_flex(sentence, text, ands):
-#     sentence_count = len(text)
-#     sentence_length = len(sentence)
-#     ands = ands + 1
-#     tf_scores = {}
-#
-#     #tf
-#     occurrences = Counter(sentence)
-#     for word in sentence:
-#         tf_scores[word] = occurrences[word]/sentence_length
-#
-#
-#     #df
-#     df = {}
-#     for key in tf_scores:
-#         count = 0
-#         for sent in text:
-#             if key in sent:
-#                 count += 1
-#         df[key] = count
-#
-#     #tfidf
-#     tfidf_scores = {}
-#     for word in sentence:
-#         tfidf_scores[word] = tf_scores[word]*log(sentence_count/(df[word]+1))
-#
-#
-#     #Matching
-#     highest_score = 0
-#     digit_multiplicator = 1.8
-#     sent_quan = 0
-#     for sentence_index, sent in enumerate(text):
-#         sentence_score = 0
-#         temp_sentences = []
-#         local_highest_score = 0
-#         local_sent_quan = 1
-#         for i in range(ands):
-#             if sentence_index + i < len(text):
-#                 if sent:
-#                     if sent[0] == '=':
-#                         break
-#
-#                 temp_sentences += text[sentence_index + i]
-#                 for word in sentence:
-#                     if word in temp_sentences:
-#                         if word.isdigit():
-#                             sentence_score += (tfidf_scores[word] * digit_multiplicator)
-#                         else:
-#                             sentence_score += tfidf_scores[word]
-#                 #???
-#                 sentence_score = sentence_score / (log(len(temp_sentences)+1) + 1)
-#                 print(highest_score, sentence_score, sent_quan)
-#                 if local_highest_score <= sentence_score:
-#                     local_highest_score = sentence_score
-#                     local_sent_quan = i + 1
-#
-#         if local_highest_score >= highest_score:
-#             highest_score = local_highest_score
-#             best_sentence_index = sentence_index
-#             sent_quan = local_sent_quan
-#
-#
-#
-#     return highest_score, best_sentence_index, sent_quan
 
 
 
@@ -473,8 +411,9 @@ def prepwritedb():
         score = req.get('ltfidf')
         print("LTFIDF")
 
+    score = round(score,2)
 
-
+    print("SIMPLE: {}".format(simple_sentence))
     c.execute("SELECT match_id FROM matches WHERE first_string = ? AND second_string = ?", [en_sentence, simple_sentence])
     conn.commit()
     res = c.fetchone()
@@ -483,7 +422,7 @@ def prepwritedb():
 
     if res:
         c.execute("INSERT INTO user_ratings (match_id,rating) VALUES(?,?)", (matchid, userrating))
-        c.execute("UPDATE scores SET match_id = ?, {} = ?".format(alg_col_name), (matchid, score))
+        c.execute("UPDATE scores SET {} = ? WHERE match_id = ?".format(alg_col_name), (score,matchid))
         conn.commit()
     else:
         sentence_no_stopwords = remove_stopwords_sentence(en_sentence)

@@ -17,7 +17,7 @@ rate_btn.addEventListener("click", function(e) {
 		console.log("ALG: " + algorithm);
 
 		let pack = {alg: algorithm, en_sentence: en_sentence, simple_sentence: simple_sentence, rating: rating, jci: jci, cosinevecindex: cosinevecindex, ltfidf:ltfidf}
-
+		console.log(pack)
 		fetch(`${window.origin}/result/prepwritedb`, {
 			method: 'POST',
 			credentials: 'include',
@@ -28,6 +28,46 @@ rate_btn.addEventListener("click", function(e) {
 			}),
 		})
 
+		let selected = document.querySelectorAll(".simple-selection");
+
+		for (var i = 0; i < selected.length; i++) {
+   			selected[i].classList.remove('simple-selection', 'selected-10', 'selected-9');
+		}
+
+		selected = document.querySelector('.selected');
+		if(selected){
+			selected.classList.remove('selected');
+		}
+
+
+		while (selected.nextElementSibling.tagName.toLowerCase() != 'span'){
+			selected = selected.nextElementSibling
+		}
+
+		selected = selected.nextElementSibling
+		selected.classList.add("selected");
+
+		alg_dd = document.querySelector('#curr-alg');
+		console.log(alg_dd.value);
+		let sentence = {
+			selected_sentence: selected.textContent,
+			selected_alg: alg_dd.value
+		}
+		en_sentence = selected.textContent;
+		let loader = document.getElementById("loader");
+  		loader.style.display = "block";
+
+		fetch(`${window.origin}/result/compare`, {
+			method: 'POST',
+			credentials: 'include',
+			body: JSON.stringify(sentence),
+			cache: 'no-cache',
+			headers: new Headers({
+				'content-type': 'application/json'
+			}),
+		})
+			.then(res => res.json())
+			.then(res => markSentence(res[0], res[1], res[2], res[3]))
 
 	}
 });
@@ -35,19 +75,14 @@ rate_btn.addEventListener("click", function(e) {
 
 // Satz in simple English markieren
 function markSentence(score, pos, sentence_quan, alg) {
+
 	let loader = document.getElementById("loader");
   	loader.style.display = "none";
 
 	console.log("in")
-	let selected = document.querySelectorAll(".simple-selection");
 
-	for (var i = 0; i < selected.length; i++) {
-   		selected[i].classList.remove('simple-selection', 'selected-10', 'selected-9');
-	}
 
 	let element = document.querySelector('#sentence-'+pos);
-	console.log(element)
-	console.log(sentence_quan)
 	for (var j = 0; j < sentence_quan; j++){
 
 		console.log("markiert")
@@ -61,7 +96,7 @@ function markSentence(score, pos, sentence_quan, alg) {
 		if(alg.toString() == 'cosinevector'){
 			cosinevecindex = score;
 
-			if(cosinevecindex >= 0.2) {
+			if(cosinevecindex >= 0.84) {
 			element.classList.add('selected-10', 'simple-selection');
 			} else {
 				if (typeof(element) != 'undefined' && element != null){
@@ -72,7 +107,7 @@ function markSentence(score, pos, sentence_quan, alg) {
 
 		if(alg.toString() == 'jci'){
 			jci = score;
-			if(jci >= 0.2) {
+			if(jci >= 0.21) {
 			element.classList.add('selected-10', 'simple-selection');
 			} else {
 				if (typeof(element) != 'undefined' && element != null){
@@ -93,10 +128,13 @@ function markSentence(score, pos, sentence_quan, alg) {
 		}
 	}
 
+	let selected_simple = document.querySelectorAll('.simple-selection');
+	simple_sentence = '';
+	for(var i = 0; i <= selected_simple.length-1; i++){
 
-
-	simple_sentence = element.textContent;
-
+		simple_sentence = simple_sentence + ' ' + selected_simple[i].textContent;
+	}
+	console.log("this is textc: " + simple_sentence)
 
 
 
@@ -106,6 +144,11 @@ function markSentence(score, pos, sentence_quan, alg) {
 // Satz per click auswaehlen und zurueck an flask schicken
 document.querySelector(".en-text").addEventListener("click", function(e) {
     e.stopPropagation();
+    let selected = document.querySelectorAll(".simple-selection");
+
+	for (var i = 0; i < selected.length; i++) {
+   		selected[i].classList.remove('simple-selection', 'selected-10', 'selected-9');
+	}
 	if(!e.target.classList.contains('en-text')) {
 		let selected = document.querySelector('.selected')
 		if(selected){
