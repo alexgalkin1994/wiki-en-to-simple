@@ -6,6 +6,7 @@ let jci = null;
 let cosinevecindex = null;
 let ltfidf = null;
 let algorithm = '';
+let user_selection = false;
 
 // User Rating und Daten zurueck an flask schicken
 rate_btn.addEventListener("click", function(e) {
@@ -15,6 +16,19 @@ rate_btn.addEventListener("click", function(e) {
 		let alg_dd = document.querySelector('#curr-alg');
 		algorithm = alg_dd.value;
 		console.log("ALG: " + algorithm);
+
+		let selected_simple = document.querySelectorAll('.simple-selection');
+		simple_sentence = '';
+		for(var i = 0; i <= selected_simple.length-1; i++){
+			simple_sentence = simple_sentence + ' ' + selected_simple[i].textContent;
+		}
+
+		console.log("THIS:" + simple_sentence);
+		if (user_selection == true){
+			jci = -1;
+			cosinevecindex = -1;
+			ltfidf = -1;
+		}
 
 		let pack = {alg: algorithm, en_sentence: en_sentence, simple_sentence: simple_sentence, rating: rating, jci: jci, cosinevecindex: cosinevecindex, ltfidf:ltfidf}
 		console.log(pack)
@@ -75,12 +89,12 @@ rate_btn.addEventListener("click", function(e) {
 
 // Satz in simple English markieren
 function markSentence(score, pos, sentence_quan, alg) {
-
+	console.log(pos);
 	let loader = document.getElementById("loader");
   	loader.style.display = "none";
 
 	console.log("in")
-
+	user_selection = false;
 
 	let element = document.querySelector('#sentence-'+pos);
 	for (var j = 0; j < sentence_quan; j++){
@@ -118,7 +132,7 @@ function markSentence(score, pos, sentence_quan, alg) {
 
 		if(alg.toString() == 'ltfidf'){
 			ltfidf = score;
-			if(ltfidf >= 0.2) {
+			if(ltfidf >= 0.28) {
 			element.classList.add('selected-10', 'simple-selection');
 			} else {
 				if (typeof(element) != 'undefined' && element != null){
@@ -128,12 +142,7 @@ function markSentence(score, pos, sentence_quan, alg) {
 		}
 	}
 
-	let selected_simple = document.querySelectorAll('.simple-selection');
-	simple_sentence = '';
-	for(var i = 0; i <= selected_simple.length-1; i++){
 
-		simple_sentence = simple_sentence + ' ' + selected_simple[i].textContent;
-	}
 	console.log("this is textc: " + simple_sentence)
 
 
@@ -164,7 +173,7 @@ document.querySelector(".en-text").addEventListener("click", function(e) {
 		en_sentence = e.target.textContent;
 		let loader = document.getElementById("loader");
   		loader.style.display = "block";
-
+		console.log(sentence)
 		fetch(`${window.origin}/result/compare`, {
 			method: 'POST',
 			credentials: 'include',
@@ -186,6 +195,22 @@ let rangeValue = function(){
   let newValue = slider.value;
   let target = document.querySelector('.value');
   target.innerHTML = newValue;
-}
+};
 
 slider.addEventListener("input", rangeValue);
+
+// Custom auswahl
+document.querySelector(".simple-text").addEventListener("click", function(e) {
+	user_selection = true;
+    e.stopPropagation();
+
+    if(!e.target.classList.contains('simple-text')) {
+		e.target.classList.toggle("simple-selection");
+		if(e.target.classList.contains('selected-9')){
+			e.target.classList.remove('selected-9');
+		}
+		if(e.target.classList.contains('selected-10')){
+			e.target.classList.remove('selected-10')
+		}
+	}
+})

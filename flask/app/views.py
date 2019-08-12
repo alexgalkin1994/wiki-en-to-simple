@@ -14,7 +14,15 @@ import numpy as np
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import operator
+import csv
+import math
 
+mfw = {}
+with open('unigram_freq.csv') as csvfile:
+    readCSV = csv.reader(csvfile, delimiter=',')
+    next(readCSV, None)
+    for row in readCSV:
+        mfw[row[0]] = (1 - (float(row[1])/100000000000))
 
 # Define document
 
@@ -72,6 +80,7 @@ def jci_flex(sentence, simple_text, ands):
 
             if i + j < len(simple_text):
                 simple_sentences = simple_sentences + simple_text[i+j]
+                print(simple_sentences)
                 if len(set(sentence).union(simple_sentences)) > 0:
                     ratio = len(set(sentence).intersection(simple_sentences)) / float(len(set(sentence).union(simple_sentences)))
                 else:
@@ -82,7 +91,7 @@ def jci_flex(sentence, simple_text, ands):
                 if local_ratio < ratio:
                     local_ratio = ratio
                     sentence_quan_local = j+1
-        if local_ratio >= highest_ratio:
+        if local_ratio > highest_ratio:
             highest_ratio = local_ratio
             sentence_index = i
             sentence_quan = sentence_quan_local
@@ -211,7 +220,7 @@ def search_form():
 def result():
     selected_query = request.args.get('query')
     article_name = selected_query
-    algorithms = ['Cosine Vector', 'Jaccard Index', 'Local TF-IDF']
+    algorithms = ['Wortvektoren', 'Jaccard-Index', 'TF-Vektoren']
     try:
         wikipedia.set_lang('simple')
         content_simple = wikipedia.WikipediaPage(title=selected_query).content
@@ -263,11 +272,8 @@ def tfidf_flex(sentence, text, ands):
     sentence = " ".join(sentence)
     text_flex = []
     for j in range(len(text)):
-        print("hier drin")
         for a in range(ands+1):
-            print("nein hier")
             if j + a < len(text):
-                print("nein nein hier")
                 text_flex.append([text[j+a],a + 1, j])
 
     text_flex_f = []
@@ -297,7 +303,64 @@ def tfidf_flex(sentence, text, ands):
 
     return value, sentence_index, sentence_quan
 
+def tf_norm(sentence):
+    my_sentence = sentence
+    # tf with L2 norm of sentence
+    tf_sent = {}
+    l2_norm = 0
+    for word in my_sentence:
+        tf_sent[word] = my_sentence.count(word)
+    for word, freq in tf_sent.items():
+        l2_norm += freq ** 2
 
+    l2_norm = math.sqrt(l2_norm)
+
+    for word in my_sentence:
+        tf_sent[word] = (tf_sent[word]) / (l2_norm)
+
+    return tf_sent
+
+def tf_flex(sentence, text, ands):
+    en_sent_tf = tf_norm(sentence)
+    print(en_sent_tf)
+    ands += 1
+
+
+    highscore = 0
+    best_sent_index = 0
+    best_sent_quan = 0
+
+
+
+    for sent_index in range(len(text)):
+        simple_sent_tf_list = []
+        local_highscore = 0
+        sentence_quan = 1
+        for i in range(ands):
+            if sent_index+i < len(text):
+                simple_sent_tf_list += text[sent_index+i]
+
+            simple_sent_tf = tf_norm(simple_sent_tf_list)
+            similarity = 0
+
+            for key, value in en_sent_tf.items():
+                if key in simple_sent_tf:
+                    similarity += en_sent_tf[key] * simple_sent_tf[key]
+            if similarity > local_highscore:
+                sentence_quan = i+1
+                local_highscore = similarity
+
+        if local_highscore > highscore:
+            highscore = local_highscore
+            best_sent_index = sent_index
+            best_sent_quan = sentence_quan
+
+        if highscore == 0:
+            best_sent_index = 0
+            best_sent_quan = 1
+
+    print(text[best_sent_index],highscore, best_sent_index, best_sent_quan)
+    return highscore, best_sent_index, best_sent_quan
 
 
 def remove_dublicate_list(mylist):
@@ -364,13 +427,17 @@ def compare_fetch():
     sentence_no_stopwords, commata_and_ands = remove_stopwords_sentence(sentence)
     pickle_in = open('content_simple_processed.pickle', 'rb')
     simple_no_stopwords = pickle.load(pickle_in)
-    print(selected_alg)
-    if(selected_alg == 'Cosine Vector'):
+
+    if(selected_alg == 'Wortvektoren'):
         pos, score, quan = sim_flex(sentence_no_stopwords, simple_no_stopwords, commata_and_ands)
         return jsonify(score, pos, quan, 'cosinevector')
 
-    elif(selected_alg == 'Local TF-IDF'):
-        tfidf_index, sentence_index, sent_quan = tfidf_flex(sentence_no_stopwords, simple_no_stopwords,commata_and_ands)
+    #elif(selected_alg == 'Local TF-IDF'):
+        #tfidf_index, sentence_index, sent_quan = tfidf_flex(sentence_no_stopwords, simple_no_stopwords,commata_and_ands)
+        #return jsonify(tfidf_index, sentence_index, sent_quan, 'ltfidf')
+    elif (selected_alg == 'TF-Vektoren'):
+        tfidf_index, sentence_index, sent_quan = tf_flex(sentence_no_stopwords, simple_no_stopwords,
+                                                            commata_and_ands)
         return jsonify(tfidf_index, sentence_index, sent_quan, 'ltfidf')
     else:
         # JCI berechnen
@@ -398,15 +465,16 @@ def prepwritedb():
     # page_id = page_info['id']
 
     print("ALG: " + str(alg))
-    if(alg == 'Jaccard Index'):
+    ['Wortvektoren', 'Jaccard-Index', 'TF-Vektoren']
+    if(alg == 'Jaccard-Index'):
         alg_col_name = 'jci_score'
         score = req.get('jci')
         print("JCI")
-    elif(alg == 'Cosine Vector'):
+    elif(alg == 'Wortvektoren'):
         alg_col_name = 'cosine_vector_score'
         score = req.get('cosinevecindex')
         print("COSINE")
-    elif(alg == 'Local TF-IDF'):
+    elif(alg == 'TF-Vektoren'):
         alg_col_name = 'local_tfidf_score'
         score = req.get('ltfidf')
         print("LTFIDF")
