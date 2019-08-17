@@ -1,7 +1,7 @@
 from math import log
 
 import sqlite3
-
+import mysql.connector
 from app import app
 from flask import render_template, request, jsonify
 import wikipedia
@@ -450,8 +450,8 @@ def compare_fetch():
 @app.route('/result/prepwritedb', methods=['POST'])
 def prepwritedb():
     # DB connection
-    conn = sqlite3.connect('align.db')
-    c = conn.cursor()
+    #conn = sqlite3.connect('align.db')
+    c = mydb.cursor(buffered=True)
 
     req = request.get_json()
     en_sentence = req.get('en_sentence')
@@ -471,41 +471,48 @@ def prepwritedb():
         score = req.get('jci')
         print("JCI")
     elif(alg == 'Wortvektoren'):
-        alg_col_name = 'cosine_vector_score'
+        alg_col_name = 'wordvector_score'
         score = req.get('cosinevecindex')
         print("COSINE")
     elif(alg == 'TF-Vektoren'):
-        alg_col_name = 'local_tfidf_score'
+        alg_col_name = 'tf_score'
         score = req.get('ltfidf')
         print("LTFIDF")
 
     score = round(score,2)
 
     print("SIMPLE: {}".format(simple_sentence))
-    c.execute("SELECT match_id FROM matches WHERE first_string = ? AND second_string = ?", [en_sentence, simple_sentence])
-    conn.commit()
+    c.execute("SELECT match_id FROM matches WHERE first_string = %s AND second_string = %s", (en_sentence, simple_sentence))
+    mydb.commit()
     res = c.fetchone()
     if res:
         matchid = res[0]
 
     if res:
-        c.execute("INSERT INTO user_ratings (match_id,rating) VALUES(?,?)", (matchid, userrating))
-        c.execute("UPDATE scores SET {} = ? WHERE match_id = ?".format(alg_col_name), (score,matchid))
-        conn.commit()
+        c.execute("INSERT INTO user_ratings (match_id,rating) VALUES(%s,%s)", (matchid, userrating))
+        c.execute("UPDATE scores SET {} = %s WHERE match_id = %s".format(alg_col_name), (score,matchid))
+        mydb.commit()
     else:
         sentence_no_stopwords = remove_stopwords_sentence(en_sentence)
         simple_no_stopwords = remove_stopwords_sentence(simple_sentence)
         print(simple_no_stopwords)
         #jci_score, cosine_score, local_tfidf_score = run_all_algs(sentence_no_stopwords, [simple_no_stopwords])
 
-        c.execute("INSERT INTO matches (first_string, second_string) VALUES (?,?)", (en_sentence, simple_sentence))
-        conn.commit()
+        c.execute("INSERT INTO matches (first_string, second_string) VALUES (%s,%s)", (en_sentence, simple_sentence))
+        mydb.commit()
         rowid = c.lastrowid
-        c.execute("INSERT INTO user_ratings (match_id, rating) VALUES (?,?)", (rowid, userrating))
-        c.execute("INSERT INTO scores (match_id, {}) VALUES (?,?)".format(alg_col_name), (rowid, score))
-        conn.commit()
+        c.execute("INSERT INTO user_ratings (match_id, rating) VALUES (%s,%s)", (rowid, userrating))
+        c.execute("INSERT INTO scores (match_id, {}) VALUES (%s,%s)".format(alg_col_name), (rowid, score))
+        mydb.commit()
 
     print("Done")
 
     return '', 204
 
+mydb = mysql.connector.connect(
+    host="db",
+    user="root",
+    passwd="root",
+    port="3306",
+    database="matchings_wiki"
+)

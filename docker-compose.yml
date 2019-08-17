@@ -17,3 +17,20 @@ services:
     restart: always
     ports:
       - "80:80"
+
+  db:
+    image: mysql
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d/:ro
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
