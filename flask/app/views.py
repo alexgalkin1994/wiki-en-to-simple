@@ -1,6 +1,5 @@
 from math import log
 
-import sqlite3
 import mysql.connector
 from app import app
 from flask import render_template, request, jsonify
@@ -17,16 +16,6 @@ import operator
 import csv
 import math
 
-mfw = {}
-with open('unigram_freq.csv') as csvfile:
-    readCSV = csv.reader(csvfile, delimiter=',')
-    next(readCSV, None)
-    for row in readCSV:
-        mfw[row[0]] = (1 - (float(row[1])/100000000000))
-
-# Define document
-
-
 # Sprachmodel laden
 nlp = spacy.load('en_core_web_md')
 nlp.add_pipe(merge_entities)
@@ -35,36 +24,7 @@ from spacy.lang.en.stop_words import STOP_WORDS
 
 article_name = ''
 
-# Jaccard index berechnen
-def jci(en_sentence, simple_text):
-    highest_ratio = 0
-    sentence_index = 0
-    for i in range(len(simple_text)):
-        if simple_text[i]:
-            if(simple_text[i][0] == '='):
-                continue
-        ratio = len(set(en_sentence).intersection(simple_text[i])) / float(len(set(en_sentence).union(simple_text[i])))
-        if ratio > highest_ratio:
-            highest_ratio = ratio
-            sentence_index = i
-    return highest_ratio, sentence_index
-
-# Jaccard index 2 sentences berechnen
-def jci2(en_sentence, simple_text):
-    highest_ratio = 0
-    sentence_index = 0
-    for i in range(len(simple_text)-1):
-        if simple_text[i]:
-            if (simple_text[i][0] == '='):
-                continue
-        simple_two_sentences = simple_text[i] + simple_text[i+1]
-        ratio = len(set(en_sentence).intersection(simple_two_sentences)) / float(len(set(en_sentence).union(simple_two_sentences)))
-        if ratio > highest_ratio:
-            highest_ratio = ratio
-            sentence_index = i
-    return highest_ratio, sentence_index
-
-
+# Jaccard Index
 def jci_flex(sentence, simple_text, ands):
     highest_ratio = 0
     sentence_index = 0
@@ -80,7 +40,6 @@ def jci_flex(sentence, simple_text, ands):
 
             if i + j < len(simple_text):
                 simple_sentences = simple_sentences + simple_text[i+j]
-                print(simple_sentences)
                 if len(set(sentence).union(simple_sentences)) > 0:
                     ratio = len(set(sentence).intersection(simple_sentences)) / float(len(set(sentence).union(simple_sentences)))
                 else:
@@ -113,32 +72,6 @@ def remove_stopwords_sentence(sentence):
                 sentence_no_stopwords.append(str(word.lemma_).lower())
             else:
                 sentence_no_stopwords.append(str(word.text).lower())
-
-
-
-    sentence_ent = []
-    local_ent = []
-    is_ent = False
-    # for word in my_sentence:
-    #     print(word.text, word.ent_iob)
-    #     if word.ent_iob == 2:
-    #         if is_ent:
-    #             if len(local_ent) > 1:
-    #                 ent = ' '.join(local_ent)
-    #             else:
-    #                 ent = local_ent[0]
-    #             local_ent = []
-    #             sentence_no_stopwords.append(str(ent).lower())
-    #             is_ent = False
-    #         if str(word) == ',' or str(word) == 'and':
-    #             commata_and_ands += 1
-    #         if word.is_stop == False and word.is_punct == False:
-    #             sentence_no_stopwords.append(str(word.lemma_).lower())
-    #     if word.ent_iob == 3:
-    #         local_ent.append(word.text)
-    #         is_ent = True
-    #     if word.ent_iob == 1:
-    #         local_ent.append(word.text)
 
     return sentence_no_stopwords, commata_and_ands
 
@@ -189,7 +122,7 @@ def process(text):
 
     return (processed)
 
-
+# Homepage
 @app.route('/')
 def index():
     return render_template('index.html')
@@ -252,7 +185,7 @@ def result():
 
         return render_template('index.html', loading = True, text_simple=content_simple, text_en=content_en, title=e.options[0])
 
-
+# Woerter in einem Satz zaehlen
 def word_count_f(sent):
     freq = {}
     for word in sent:
@@ -262,7 +195,7 @@ def word_count_f(sent):
             freq[word] = 1
     return freq
 
-
+# TF-IDF (wird nicht benutzt)
 def tfidf_flex(sentence, text, ands):
     for i in range(len(text)):
         if text[i] == []:
@@ -279,7 +212,6 @@ def tfidf_flex(sentence, text, ands):
     text_flex_f = []
     text_flex_f.insert(0, sentence)
 
-    print(text_flex)
 
     for b in range(len(text_flex)):
         if(text_flex[b][0]) == []:
@@ -287,7 +219,6 @@ def tfidf_flex(sentence, text, ands):
             continue
         text_flex_f.append(text_flex[b][0])
     tfidf_vectorizer = TfidfVectorizer()
-    print(text_flex_f)
     tfidf_matrix = tfidf_vectorizer.fit_transform(text_flex_f)
     tfidf = cosine_similarity(tfidf_matrix[0:1], tfidf_matrix)
     tfidf = tfidf[0][1:]
@@ -296,13 +227,9 @@ def tfidf_flex(sentence, text, ands):
     sentence_quan = text_flex[index][1]
     sentence_index = text_flex[index][2]
 
-
-    #print(cosine_similarity(tfidf_sentence_vector,tfidf_matrix))
-
-
-
     return value, sentence_index, sentence_quan
 
+# TF Norm vom Satz
 def tf_norm(sentence):
     my_sentence = sentence
     # tf with L2 norm of sentence
@@ -320,11 +247,10 @@ def tf_norm(sentence):
 
     return tf_sent
 
+# TF-Vektor Algorithmus
 def tf_flex(sentence, text, ands):
     en_sent_tf = tf_norm(sentence)
-    print(en_sent_tf)
     ands += 1
-
 
     highscore = 0
     best_sent_index = 0
@@ -359,18 +285,15 @@ def tf_flex(sentence, text, ands):
             best_sent_index = 0
             best_sent_quan = 1
 
-    print(text[best_sent_index],highscore, best_sent_index, best_sent_quan)
     return highscore, best_sent_index, best_sent_quan
 
-
+# Dublikate aus Liste entfernen
 def remove_dublicate_list(mylist):
     mylist = list(dict.fromkeys(mylist))
     return mylist
 
-
+# Wortvektor Algorithmus
 def sim_flex(sentence, text, ands):
-
-    #sentence = remove_dublicate_list(sentence)
     sentence = " ".join(sentence)
     sentence = nlp(sentence)
 
@@ -398,7 +321,6 @@ def sim_flex(sentence, text, ands):
         for j in range(0,len(sentences_different_quan)):
 
             if sentences_different_quan[j][0] == '=' or sentences_different_quan[j] == ' ' or sentences_different_quan[j] == '' or sentences_different_quan == ' ':
-                #c += 1
                 continue
             sentences_comp = nlp(sentences_different_quan[j])
             score = sentence.similarity(sentences_comp)
@@ -431,14 +353,13 @@ def compare_fetch():
     if(selected_alg == 'Wortvektoren'):
         pos, score, quan = sim_flex(sentence_no_stopwords, simple_no_stopwords, commata_and_ands)
         return jsonify(score, pos, quan, 'cosinevector')
-
+    # Falls man TF-IDF aktivieren moechte
     #elif(selected_alg == 'Local TF-IDF'):
         #tfidf_index, sentence_index, sent_quan = tfidf_flex(sentence_no_stopwords, simple_no_stopwords,commata_and_ands)
         #return jsonify(tfidf_index, sentence_index, sent_quan, 'ltfidf')
     elif (selected_alg == 'TF-Vektoren'):
-        tfidf_index, sentence_index, sent_quan = tf_flex(sentence_no_stopwords, simple_no_stopwords,
-                                                            commata_and_ands)
-        return jsonify(tfidf_index, sentence_index, sent_quan, 'ltfidf')
+        tf_index, sentence_index, sent_quan = tf_flex(sentence_no_stopwords, simple_no_stopwords, commata_and_ands)
+        return jsonify(tf_index, sentence_index, sent_quan, 'ltfidf')
     else:
         # JCI berechnen
         jci_index, sentence_index, sentence_quan = jci_flex(sentence_no_stopwords, simple_no_stopwords, commata_and_ands)
@@ -450,7 +371,6 @@ def compare_fetch():
 @app.route('/result/prepwritedb', methods=['POST'])
 def prepwritedb():
     # DB connection
-    #conn = sqlite3.connect('align.db')
     c = mydb.cursor(buffered=True)
 
     req = request.get_json()
@@ -461,27 +381,21 @@ def prepwritedb():
 
     pickle_in = open('page_info.pickle', 'rb')
     page_info = pickle.load(pickle_in)
-    # page_name = page_info['name']
-    # page_id = page_info['id']
 
-    print("ALG: " + str(alg))
     ['Wortvektoren', 'Jaccard-Index', 'TF-Vektoren']
+
     if(alg == 'Jaccard-Index'):
         alg_col_name = 'jci_score'
         score = req.get('jci')
-        print("JCI")
     elif(alg == 'Wortvektoren'):
         alg_col_name = 'wordvector_score'
         score = req.get('cosinevecindex')
-        print("COSINE")
     elif(alg == 'TF-Vektoren'):
         alg_col_name = 'tf_score'
         score = req.get('ltfidf')
-        print("LTFIDF")
 
     score = round(score,2)
 
-    print("SIMPLE: {}".format(simple_sentence))
     c.execute("SELECT match_id FROM matches WHERE first_string = %s AND second_string = %s", (en_sentence, simple_sentence))
     mydb.commit()
     res = c.fetchone()
@@ -495,8 +409,6 @@ def prepwritedb():
     else:
         sentence_no_stopwords = remove_stopwords_sentence(en_sentence)
         simple_no_stopwords = remove_stopwords_sentence(simple_sentence)
-        print(simple_no_stopwords)
-        #jci_score, cosine_score, local_tfidf_score = run_all_algs(sentence_no_stopwords, [simple_no_stopwords])
 
         c.execute("INSERT INTO matches (first_string, second_string) VALUES (%s,%s)", (en_sentence, simple_sentence))
         mydb.commit()

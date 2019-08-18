@@ -30,6 +30,7 @@
     <h1>{{ title }}</h1>
     <div class="text-view">
         <div class="en-version">
+            <h2 class="sub-title">English</h2>
             <div class="en-text">
                 {% for i in range(0, en_len) %}
                     {% if text_en[i].startswith('====') %}
@@ -49,6 +50,7 @@
             </div>
         </div>
         <div class="simple-version">
+            <h2 class="sub-title">Simple English</h2>
             <div class="simple-text">
                 {%for i in range(0, simple_len)%}
                     {% if i == sentence_index %}

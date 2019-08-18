@@ -142,6 +142,7 @@ h3{
 }
 
 
+
 .selected-10{
     background-color: #57e32c;
 }
@@ -259,3 +260,8 @@ input[type="range"]::-webkit-slider-thumb {
     display: none;
     cursor: wait;
     }
+
+.sub-title{
+    border-bottom: 0;
+    text-align: center;
+}
