@@ -421,10 +421,12 @@ def prepwritedb():
 
     return '', 204
 
-mydb = mysql.connector.connect(
-    host="db",
-    user="root",
-    passwd="root",
-    port="3306",
-    database="matchings_wiki"
-)
+mydb = False
+while not mydb:
+    mydb = mysql.connector.connect(
+        host="db",
+        user="root",
+        passwd="root",
+        port="3306",
+        database="matchings_wiki"
+    )

@@ -14,4 +14,4 @@ RUN pip install -r requirements.txt
 RUN python -m spacy download en_core_web_md
 
 # run the command to start uWSGI
-CMD ["uwsgi", "app.ini"]
+# CMD ["uwsgi", "app.ini"]
