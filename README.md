@@ -4,7 +4,7 @@
 To start the programm Docker is required.
 
 Build the containers with `docker-compose build`. 
-Start them by typing `docker-compose up`.
+Start them with `docker-compose up`.
 Navigate to http://localhost via your favorite web browser.
 
 ## Usage
