@@ -1,17 +1,31 @@
-# wiki-en-to-simple
+# English to Simple English Wikipedia
 
+## Install
+To start the programm Docker is required.
 
-Um das Programm zu starten muss Docker installiert sein. 
+Build the containers with `docker-compose build`. 
+Start them by typing `docker-compose up`.
+Navigate to http://localhost via your favorite web browser.
 
-Die Container werden mit `docker-compose build` gebuildet, dies kann eine Weile dauern. 
-Danach können diese mit `docker-compose up` gestartet werden.
-Jetzt kann über http://localhost darauf zugegriffen werden.
+## Usage
 
-Falls beim build process der Fehler: 
+When you first open the tool you will see a search bar. Type in any topic you want annotate sentences for.
+![Searchbar Demo](gif/search-bar.gif)
+
+After you confirm your search you will get a list with all the topics related to your search term. The tool only shows topics that are available in _English_ __and__ _Simple English_. Click on the one you are interested in. 
+![List Demo](gif/list.gif)
+
+Now you can select any sentence in the _English_ article (left side). The tool automatically matches your selected sentence based on semantic similarity to one or more sentence(s) in the _Simple English_ article. Now you can either rate the matched sentence with the slider on the left side (0 - 3) or manually select/deselect sentences in the _Simple English_ article. By clicking the ___Rate___ button under the slider you create a new entry in the database. An entry consists of the user score, algorithm score and the sentence pair. You can change between the three algorithms in the top left corner via the dropdown menu.
+![Main Demo](gif/main.gif)
+
+## Connecting to the Database
+
+The database can be accessed via Adminer http://localhost:8080 - just navigate to this adress in your web browser.
+Per default the server name is `db` and username and passwort are both `root`. You can find your annotations in the `matchings_wiki` database.
+
+If you want to connect to the database via an external tool you can do it with the following adress: http://localhost:3308
+
+## Known Errors
+If you encounter this error: 
 `ERROR: Service 'flask' failed to build: The command '/bin/sh -c pip install -r requirements.txt' returned a non-zero code: 137`
-kommt, dann sollte Docker mehr RAM zur Verfügung gestellt werden.
-
-Falls alles richtig gestartet ist und das Programm läuft, dann kann mit Hilfe von Adminer über http://localhost:8080 zugegriffen werden (Einfach im Webbrowser eingeben, Adminer ist ein auf php basierendes Datenbankverwaltungstool).
-Per default hat der Server den Namen `db`. Username und Passwort sind beides `root`. Das `Datenbank` Feld kann freigelassen werden. Anschließend findet man in der `matchings_wiki` Datenbank alle Matches, Scores und Benutzerbewertungen.
-
-Falls man sich mit einem Tool außerhalb von Docker auf die MySQL Datenbank connecten möchte, dann erfolgt dies über http://localhost:3308
+then you have to allocate more RAM to Docker.
