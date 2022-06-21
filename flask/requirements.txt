@@ -15,7 +15,7 @@ jsonschema==3.0.1
 MarkupSafe==1.1.1
 murmurhash==1.0.2
 mysql-connector==2.2.9
-numpy==1.16.4
+numpy==1.22.0
 plac==0.9.6
 preshed==2.0.1
 pyrsistent==0.15.2
